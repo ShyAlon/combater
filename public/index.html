@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D&D Combat Manager</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <div id="container">
+        <div id="grid" class="battle-grid"></div>
+        <aside id="sidebar">
+            <h2>Initiative Order</h2>
+            <ul id="initiative-list"></ul>
+            <button id="next-turn">Next Turn</button>
+            <button id="add-combatant-btn">Add Combatant</button>
+        </aside>
+    </div>
+
+    <!-- Modal for editing combatant stats -->
+    <div id="combatant-dialog" class="modal">
+        <form id="edit-form">
+            <h3>Edit Combatant</h3>
+            <label>Name: <input name="name" required></label><br>
+            <label>HP: <input name="hp" type="number" required></label><br>
+            <label>AC: <input name="ac" type="number" required></label><br>
+            <label>Initiative: <input name="initiative" type="number" required></label><br>
+            <button type="button" id="remove-combatant-btn" style="margin-top: 10px;">Remove Combatant</button>
+            <button type="button" id="duplicate-combatant-btn">Duplicate</button>
+            <button type="submit">Save</button>
+            <button type="button" id="close-dialog">Cancel</button>
+        </form>
+    </div>
+
+    <!-- Context Menu -->
+    <ul id="context-menu" class="custom-menu">
+        <li data-action="aoe-square">AoE: Square</li>
+        <li data-action="aoe-line">AoE: Line</li>
+        <li data-action="aoe-cone">AoE: Cone</li>
+    </ul>
+
+    <!-- Distance Indicator -->
+    <div id="distance-display" class="distance-indicator"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
