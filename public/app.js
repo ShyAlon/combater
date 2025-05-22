@@ -44,6 +44,13 @@ socket.onmessage = async event => {
         });
         renderCombatants();
         renderInitiativeList();
+    } else if (msg.type === 'delete') {
+        const index = combatants.findIndex(c => c.name === msg.name);
+        if (index !== -1) {
+            combatants.splice(index, 1);
+            renderCombatants();
+            renderInitiativeList();
+        }
     }
 };
 
@@ -381,7 +388,13 @@ removeBtn.addEventListener('click', () => {
     if (!editingCombatant) return;
 
     const index = combatants.indexOf(editingCombatant);
-    if (index !== -1) combatants.splice(index, 1);
+    if (index !== -1) {
+        const deletedName = editingCombatant.name;
+        combatants.splice(index, 1);
+
+        socket.send(JSON.stringify({ type: 'delete', name: deletedName }));
+    }
+
     dialog.style.display = 'none';
     renderCombatants();
     renderInitiativeList();
