@@ -21,7 +21,8 @@ let combatants = [
     { name: "Goblin", initiative: 12, hp: 7, ac: 13 }
 ];
 
-const socket = new WebSocket(`ws://${location.host}`);
+const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const socket = new WebSocket(`${protocol}//${location.host}`);
 
 socket.onmessage = async event => {
     const text = await event.data.text();  // convert Blob to string
