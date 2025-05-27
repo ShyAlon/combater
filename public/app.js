@@ -253,21 +253,31 @@ function openEditDialog(c) {
     duplicateBtn.style.display = 'inline-block';
 }
 
-form.addEventListener('submit', e => {
+form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const data = {
-        name: form.name.value,
-        hp: +form.hp.value,
-        ac: +form.ac.value,
-        initiative: +form.initiative.value,
-    };
 
-    if (editingCombatant) {
-        Object.assign(editingCombatant, data);
+    const count = parseInt(prompt("How many combatants to add?", "1"), 10);
+    if (isNaN(count) || count <= 0) return;
+
+    const newCombatants = [];
+
+    for (let i = 0; i < count; i++) {
+        const name = count > 1 ? `${form.name.value} ${i + 1}` : form.name.value;
+        const combatant = {
+            name,
+            hp: +form.hp.value,
+            ac: +form.ac.value,
+            initiative: +form.initiative.value,
+            index: Math.floor(Math.random() * grid.children.length),
+        };
+        combatants.push(combatant);
+        newCombatants.push(combatant);
+    }
+
+    if (newCombatants.length === 1) {
+        sendMessage({ type: 'add', combatant: newCombatants[0] });
     } else {
-        data.index = Math.floor(Math.random() * grid.children.length);
-        combatants.push(data);
-        sendMessage(({ type: 'add', combatant: data }));
+        sendMessage({ type: 'bulk-add', combatants: newCombatants });
     }
 
     dialog.style.display = 'none';
@@ -423,9 +433,6 @@ function toggleAoE(square) {
 }
 
 addBtn.addEventListener('click', () => {
-    const count = parseInt(prompt("How many combatants to add?", "1"), 10);
-    if (isNaN(count) || count <= 0) return;
-
     editingCombatant = null;
     form.name.value = '';
     form.hp.value = 10;
@@ -433,36 +440,6 @@ addBtn.addEventListener('click', () => {
     form.initiative.value = 10;
     removeBtn.style.display = 'none';
     duplicateBtn.style.display = 'none';
-
-    form.onsubmit = function (e) {
-        e.preventDefault();
-
-        const newCombatants = [];
-
-        for (let i = 0; i < count; i++) {
-            const name = count > 1 ? `${form.name.value} ${i + 1}` : form.name.value;
-            const combatant = {
-                name,
-                hp: +form.hp.value,
-                ac: +form.ac.value,
-                initiative: +form.initiative.value,
-                index: Math.floor(Math.random() * grid.children.length),
-            };
-            combatants.push(combatant);
-            newCombatants.push(combatant);
-        }
-
-        if (newCombatants.length === 1) {
-            sendMessage(({ type: 'add', combatant: newCombatants[0] }));
-        } else {
-            sendMessage(({ type: 'bulk-add', combatants: newCombatants }));
-        }
-
-        dialog.style.display = 'none';
-        renderCombatants();
-        renderInitiativeList();
-    };
-
     dialog.style.display = 'block';
 });
 

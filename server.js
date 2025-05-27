@@ -27,7 +27,6 @@ wss.on('connection', ws => {
 
     ws.on('message', message => {
         const msg = JSON.parse(message);
-
         if (msg.type === 'map-upload') {
             currentMap = msg; // full map object
             broadcast(ws, message); // send to others
@@ -46,13 +45,13 @@ wss.on('connection', ws => {
             const c = combatants.find(c => c.name === msg.name);
             if (c) c.index = msg.index;
             broadcast(ws, message);
-        } else if (msg.type === 'get-combatants') {
-            ws.send(JSON.stringify({ type: 'combatants-sync', combatants }));
         } else if (msg.type === 'next-turn') {
             turnIndex = msg.index;
             broadcast(ws, JSON.stringify({ type: 'turn-update', index: turnIndex }));
         } else if (msg.type === 'get-turn') {
             ws.send(JSON.stringify({ type: 'turn-update', index: turnIndex }));
+        } else if (msg.type === 'get-combatants') {
+            ws.send(JSON.stringify({ type: 'combatants-sync', combatants }));
         }
         else {
             console.log('[WebSocket] Message received:', message.toString());
