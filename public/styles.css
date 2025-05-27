@@ -22,14 +22,15 @@ body {
 }
 
 .battle-grid>div {
-    background-color: #f8f8f8;
-    border: 2px solid #333;
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    /* thin, subtle grid lines */
     box-sizing: border-box;
     position: relative;
 }
 
 .battle-grid>div:nth-child(even) {
-    background-color: #e6e6e6;
+    background-color: transparent;
 }
 
 .battle-grid>div.impassable {
@@ -139,6 +140,20 @@ body {
 .combatant.active-turn {
     outline: 3px solid gold;
     animation: pulse 1s infinite alternate;
+}
+
+.map-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+
+.battle-grid {
+    position: relative;
+    z-index: 1;
 }
 
 @keyframes pulse {

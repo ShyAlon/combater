@@ -9,7 +9,14 @@ const distanceDisplay = document.getElementById('distance-display');
 const addBtn = document.getElementById('add-combatant-btn');
 const removeBtn = document.getElementById('remove-combatant-btn');
 const duplicateBtn = document.getElementById('duplicate-combatant-btn');
+const mapUpload = document.getElementById('map-upload');
+const mapWidthInput = document.getElementById('map-width');
+const mapHeightInput = document.getElementById('map-height');
+const setMapBtn = document.getElementById('set-map');
 
+
+const clientId = crypto.randomUUID();  // Modern, reliable
+let mapImage = null;
 let turnIndex = 0;
 let draggedElement = null;
 let startIndex = null;
@@ -24,10 +31,33 @@ let combatants = [
 const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const socket = new WebSocket(`${protocol}//${location.host}`);
 
+function sendMessage(message) {
+    const fullMessage = { ...message, clientId };
+    socket.send(JSON.stringify(fullMessage));
+    console.log('[WebSocket Send]', fullMessage);
+}
+
+socket.addEventListener('open', () => {
+    sendMessage(({ type: 'get-map' }));
+    sendMessage(({ type: 'get-combatants' }));
+    sendMessage(({ type: 'get-turn' }));
+});
+
 socket.onmessage = async event => {
-    const text = await event.data.text();  // convert Blob to string
+    let text;
+
+    if (event.data instanceof Blob) {
+        text = await event.data.text(); // works for Blob
+    } else {
+        text = event.data; // already a string
+    }
     const msg = JSON.parse(text);
     console.log('[Sync] Received', msg);
+
+    if (msg.clientId && msg.clientId === clientId) {
+        console.log('[Sync] Ignoring own message');
+        return; // Ignore own messages
+    }
 
     if (msg.type === 'move') {
         const c = combatants.find(x => x.name === msg.name);
@@ -52,6 +82,24 @@ socket.onmessage = async event => {
             renderCombatants();
             renderInitiativeList();
         }
+    } else if (msg.type === 'map-upload') {
+        if (mapImage) mapImage.remove();
+
+        mapImage = document.createElement('img');
+        mapImage.src = msg.image;
+        mapImage.className = 'map-layer';
+        mapImage.style.width = `${msg.width * 60}px`;
+        mapImage.style.height = `${msg.height * 60}px`;
+
+        document.querySelector('.battle-grid').prepend(mapImage);
+    } else if (msg.type === 'combatants-sync') {
+        combatants = msg.combatants;
+        renderCombatants();
+        renderInitiativeList();
+    } else if (msg.type === 'turn-update') {
+        turnIndex = msg.index;
+        renderCombatants();
+        renderInitiativeList();
     }
 };
 
@@ -166,7 +214,7 @@ function onDrop(e) {
     const combatant = combatants.find(c => c.name === draggedElement.textContent);
     if (combatant) {
         combatant.index = index;
-        socket.send(JSON.stringify({ type: 'move', name: combatant.name, index }));
+        sendMessage(({ type: 'move', name: combatant.name, index }));
         console.log(' - Combatant index updated:', combatant);
     } else {
         console.warn(' - Combatant model not found');
@@ -190,6 +238,7 @@ nextTurnBtn.addEventListener('click', () => {
     turnIndex = (turnIndex + 1) % combatants.length;
     renderCombatants();
     renderInitiativeList();
+    sendMessage(({ type: 'next-turn', index: turnIndex }));
 });
 
 
@@ -218,7 +267,7 @@ form.addEventListener('submit', e => {
     } else {
         data.index = Math.floor(Math.random() * grid.children.length);
         combatants.push(data);
-        socket.send(JSON.stringify({ type: 'add', combatant: data }));
+        sendMessage(({ type: 'add', combatant: data }));
     }
 
     dialog.style.display = 'none';
@@ -248,6 +297,38 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('#context-menu')) {
         clearAllAoE();
     }
+});
+
+setMapBtn.addEventListener('click', () => {
+    const file = mapUpload.files[0];
+    if (!file) return alert('Please select an image.');
+
+    const widthTiles = parseInt(mapWidthInput.value, 10);
+    const heightTiles = parseInt(mapHeightInput.value, 10);
+    if (isNaN(widthTiles) || isNaN(heightTiles)) {
+        return alert('Please enter map dimensions.');
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        if (mapImage) mapImage.remove(); // remove previous map if any
+
+        mapImage = document.createElement('img');
+        mapImage.src = e.target.result;
+        mapImage.className = 'map-layer';
+        mapImage.style.width = `${widthTiles * 60}px`;
+        mapImage.style.height = `${heightTiles * 60}px`;
+
+        document.querySelector('.battle-grid').prepend(mapImage);
+
+        sendMessage(({
+            type: 'map-upload',
+            image: e.target.result,
+            width: widthTiles,
+            height: heightTiles
+        }));
+    };
+    reader.readAsDataURL(file);
 });
 
 contextMenu.addEventListener('click', (e) => {
@@ -372,9 +453,9 @@ addBtn.addEventListener('click', () => {
         }
 
         if (newCombatants.length === 1) {
-            socket.send(JSON.stringify({ type: 'add', combatant: newCombatants[0] }));
+            sendMessage(({ type: 'add', combatant: newCombatants[0] }));
         } else {
-            socket.send(JSON.stringify({ type: 'bulk-add', combatants: newCombatants }));
+            sendMessage(({ type: 'bulk-add', combatants: newCombatants }));
         }
 
         dialog.style.display = 'none';
@@ -393,7 +474,7 @@ removeBtn.addEventListener('click', () => {
         const deletedName = editingCombatant.name;
         combatants.splice(index, 1);
 
-        socket.send(JSON.stringify({ type: 'delete', name: deletedName }));
+        sendMessage(({ type: 'delete', name: deletedName }));
     }
 
     dialog.style.display = 'none';
