@@ -140,10 +140,26 @@ function renderCombatants() {
         div.draggable = true;
         div.addEventListener('dragstart', onDragStart);
         div.addEventListener('dblclick', () => openEditDialog(c));
+        attachCombatantTooltip(div);
         // attachCombatantTooltip?.(div, c); // optional if you're using it
 
         if (typeof c.index !== 'number') c.index = Math.floor(Math.random() * grid.children.length);
         grid.children[c.index].appendChild(div);
+    });
+}
+
+function attachCombatantTooltip(el) {
+    let tooltipTimeout;
+
+    el.addEventListener('mouseenter', () => {
+        tooltipTimeout = setTimeout(() => {
+            el.dataset.tooltipShow = 'true';
+        }, 1000);
+    });
+
+    el.addEventListener('mouseleave', () => {
+        clearTimeout(tooltipTimeout);
+        el.dataset.tooltipShow = 'false';
     });
 }
 
@@ -227,8 +243,8 @@ function updateDistance(e) {
     if (!endSquare) return;
 
     const endIndex = [...grid.children].indexOf(endSquare);
-    const dx = Math.abs((endIndex % 10) - (startIndex % 10));
-    const dy = Math.abs(Math.floor(endIndex / 10) - Math.floor(startIndex / 10));
+    const dx = Math.abs((endIndex % gridSize) - (startIndex % gridSize));
+    const dy = Math.abs(Math.floor(endIndex / gridSize) - Math.floor(startIndex / gridSize));
     const distance = dx + dy;
 
     distanceDisplay.textContent = `Distance: ${distance}`;
@@ -256,30 +272,38 @@ function openEditDialog(c) {
 form.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const count = parseInt(prompt("How many combatants to add?", "1"), 10);
-    if (isNaN(count) || count <= 0) return;
-
-    const newCombatants = [];
-
-    for (let i = 0; i < count; i++) {
-        const name = count > 1 ? `${form.name.value} ${i + 1}` : form.name.value;
-        const combatant = {
-            name,
-            hp: +form.hp.value,
-            ac: +form.ac.value,
-            initiative: +form.initiative.value,
-            index: Math.floor(Math.random() * grid.children.length),
-        };
-        combatants.push(combatant);
-        newCombatants.push(combatant);
-    }
-
-    if (newCombatants.length === 1) {
-        sendMessage({ type: 'add', combatant: newCombatants[0] });
+    if (editingCombatant) {
+        // Update existing combatant
+        editingCombatant.name = form.name.value;
+        editingCombatant.hp = +form.hp.value;
+        editingCombatant.ac = +form.ac.value;
+        editingCombatant.initiative = +form.initiative.value;
     } else {
-        sendMessage({ type: 'bulk-add', combatants: newCombatants });
+        const count = parseInt(prompt("How many combatants to add?", "1"), 10);
+        if (isNaN(count) || count <= 0) return;
+
+        const newCombatants = [];
+        for (let i = 0; i < count; i++) {
+            const name = count > 1 ? `${form.name.value} ${i + 1}` : form.name.value;
+            const combatant = {
+                name,
+                hp: +form.hp.value,
+                ac: +form.ac.value,
+                initiative: +form.initiative.value,
+                index: Math.floor(Math.random() * grid.children.length),
+            };
+            combatants.push(combatant);
+            newCombatants.push(combatant);
+        }
+
+        if (newCombatants.length === 1) {
+            sendMessage({ type: 'add', combatant: newCombatants[0] });
+        } else {
+            sendMessage({ type: 'bulk-add', combatants: newCombatants });
+        }
     }
 
+    editingCombatant = null;
     dialog.style.display = 'none';
     renderCombatants();
     renderInitiativeList();
@@ -491,6 +515,43 @@ function clearAllAoE() {
         cell.classList.remove('aoe')
     );
 }
+
+const gridWidthInput = document.getElementById('grid-width');
+const gridHeightInput = document.getElementById('grid-height');
+const resizeBtn = document.getElementById('resize-grid');
+
+resizeBtn.addEventListener('click', () => {
+    const width = parseInt(gridWidthInput.value, 10);
+    const height = parseInt(gridHeightInput.value, 10);
+    if (isNaN(width) || isNaN(height)) return;
+
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${width}, 60px)`;
+    grid.style.gridTemplateRows = `repeat(${height}, 60px)`;
+    gridSize = width;
+
+    for (let i = 0; i < width * height; i++) {
+        const square = document.createElement('div');
+        square.dataset.index = i;
+        square.passable = true;
+        square.addEventListener('click', () => {
+            square.passable = !square.passable;
+            square.classList.toggle('impassable', !square.passable);
+        });
+        square.addEventListener('dragover', e => {
+            if (square.passable) e.preventDefault();
+        });
+        square.addEventListener('drop', onDrop);
+        grid.appendChild(square);
+    }
+
+    if (mapImage) {
+        mapImage.style.width = `${width * 60}px`;
+        mapImage.style.height = `${height * 60}px`;
+    }
+
+    renderCombatants();
+});
 
 renderCombatants();
 renderInitiativeList();

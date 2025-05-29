@@ -4,52 +4,82 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>D&D Combat Manager</title>
+    <title>D&D Combat Board</title>
     <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
-    <div id="container">
-        <div id="grid" class="battle-grid"></div>
-        <aside id="sidebar">
-            <h2>Initiative Order</h2>
-            <ul id="initiative-list"></ul>
-            <button id="next-turn">Next Turn</button>
-            <button id="add-combatant-btn">Add Combatant</button>
-            <h3>Map Upload</h3>
-            <input type="file" id="map-upload" accept="image/*" />
-            <input type="number" id="map-width" placeholder="Width (tiles)" min="1" />
-            <input type="number" id="map-height" placeholder="Height (tiles)" min="1" />
-            <button id="set-map">Set Map</button>
-        </aside>
+    <div class="sidebar">
+        <h2>Combat Tracker</h2>
+        <ul id="initiative-list"></ul>
+        <button id="next-turn">Next Turn</button>
+        <hr />
+        <button id="add-combatant-btn">Add Combatant</button>
+        <button id="resize-grid">Resize Grid</button>
+        <h3>Grid Size</h3>
+        <div class="input-row">
+            <input id="grid-width" type="number" min="8" max="25" value="15" placeholder="Width" />
+            <input id="grid-height" type="number" min="8" max="25" value="15" placeholder="Height" />
+        </div>
+        <h3>Map Upload</h3>
+        <input type="file" id="map-upload" accept="image/*" />
+        <h3>Map Size</h3>
+        <div class="input-row">
+            <input id="map-width" type="number" min="8" max="25" value="15" placeholder="Width" />
+            <input id="map-height" type="number" min="8" max="25" value="15" placeholder="Height" />
+        </div>
+        <button id="set-map">Set Map</button>
+    </div>
+    <div class="main">
+        <div id="map-layer-container"></div>
+        <div class="battle-grid" id="grid"></div>
+        <div id="distance-display"></div>
     </div>
 
-    <!-- Modal for editing combatant stats -->
-    <div id="combatant-dialog" class="modal">
-        <form id="edit-form">
-            <h3>Edit Combatant</h3>
-            <label>Name: <input name="name" required></label><br>
-            <label>HP: <input name="hp" type="number" required></label><br>
-            <label>AC: <input name="ac" type="number" required></label><br>
-            <label>Initiative: <input name="initiative" type="number" required></label><br>
-            <button type="button" id="remove-combatant-btn" style="margin-top: 10px;">Remove Combatant</button>
-            <button type="button" id="duplicate-combatant-btn">Duplicate</button>
-            <button type="submit">Save</button>
-            <button type="button" id="close-dialog">Cancel</button>
-        </form>
-    </div>
-
-    <!-- Context Menu -->
-    <ul id="context-menu" class="custom-menu">
+    <ul id="context-menu" class="context-menu">
         <li data-action="aoe-square">AoE: Square</li>
         <li data-action="aoe-line">AoE: Line</li>
         <li data-action="aoe-cone">AoE: Cone</li>
+        <li data-action="clear-aoe">Clear AoE</li>
     </ul>
 
-    <!-- Distance Indicator -->
-    <div id="distance-display" class="distance-indicator"></div>
+    <dialog id="combatant-dialog">
+        <form method="dialog" id="combatant-form">
+            <label>
+                Name
+                <input name="name" placeholder="Name" required />
+            </label>
 
-    <script src="app.js"></script>
+            <label>
+                HP
+                <input name="hp" type="number" placeholder="Hit Points" required />
+            </label>
+
+            <label>
+                AC
+                <input name="ac" type="number" placeholder="Armor Class" required />
+            </label>
+
+            <label>
+                Initiative
+                <input name="initiative" type="number" placeholder="Initiative" required />
+            </label>
+
+            <label>
+                Count
+                <input name="count" type="number" value="1" min="1" max="20" required />
+            </label>
+
+            <button type="submit">Save</button>
+
+            <div class="button-row">
+                <button type="button" id="remove-combatant-btn">Remove</button>
+                <button type="button" id="duplicate-combatant-btn">Duplicate</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script type="module" src="main.js"></script>
 </body>
 
 </html>
