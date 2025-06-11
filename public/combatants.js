@@ -1,87 +1,58 @@
-import { gridSize } from './grid.js';
+import { grid } from './grid.js';
 import { sendMessage } from './socket.js';
 
-export let combatants = [];
+export const combatants = [];
 export let turnIndex = 0;
 
-const grid = document.getElementById('grid');
-const list = document.getElementById('initiative-list');
+export function setTurnIndex(index) {
+  turnIndex = index;
+  renderCombatants();
+  renderInitiativeList();
+}
 
 export function renderCombatants() {
-    grid.querySelectorAll('.combatant').forEach(el => el.remove());
+  [...grid.children].forEach(cell => {
+    const existing = cell.querySelector('.combatant');
+    if (existing) cell.removeChild(existing);
+  });
 
-    combatants.forEach((c, idx) => {
-        const div = document.createElement('div');
-        div.className = 'combatant';
-        if (idx === turnIndex) div.classList.add('active-turn');
-        div.textContent = c.name;
-        div.draggable = true;
-        div.dataset.tooltip = `Name: ${c.name}\nHP: ${c.hp}\nAC: ${c.ac}`;
-        div.dataset.tooltipShow = 'false';
+  combatants.forEach((c, idx) => {
+    const div = document.createElement('div');
+    div.className = 'combatant';
+    div.textContent = c.name;
+    div.draggable = true;
 
-        div.addEventListener('dragstart', () => {
-            div.classList.add('dragging');
-            window.draggingCombatant = c;
-        });
-        div.addEventListener('dragend', () => {
-            div.classList.remove('dragging');
-            window.draggingCombatant = null;
-        });
+    if (idx === turnIndex) div.classList.add('active-turn');
 
-        attachTooltipHandlers(div);
-        div.addEventListener('dblclick', () => {
-            document.dispatchEvent(new CustomEvent('combatant:edit', { detail: c }));
-        });
+    div.dataset.index = idx;
 
-        const square = grid.children[c.index];
-        if (!square) {
-            console.warn(`[Render] Combatant "${c.name}" was out of bounds, moving to index 0.`);
-            c.index = 0;
-            grid.children[0].appendChild(div);
-        } else {
-            square.appendChild(div);
-        }
-        square.appendChild(div);
+    div.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('combatantIndex', idx);
     });
+
+    const square = grid.children[c.index];
+    if (square) square.appendChild(div);
+  });
 }
 
 export function renderInitiativeList() {
-    list.innerHTML = '';
-    combatants
-        .slice()
-        .sort((a, b) => b.initiative - a.initiative)
-        .forEach((c, i) => {
-            const li = document.createElement('li');
-            li.textContent = `${c.name} (${c.initiative})`;
-            if (i === turnIndex) li.style.fontWeight = 'bold';
-            list.appendChild(li);
-        });
+  const list = document.getElementById('initiative-list');
+  list.innerHTML = '';
+
+  combatants.forEach((c, i) => {
+    const li = document.createElement('li');
+    li.textContent = `${c.name} (${c.initiative})`;
+    if (i === turnIndex) li.style.fontWeight = 'bold';
+    list.appendChild(li);
+  });
 }
 
-export function attachDragHandlers() {
-    document.addEventListener('grid:drop', (e) => {
-        const square = e.detail.target;
-        const combatant = window.draggingCombatant;
-        const index = parseInt(square.dataset.index);
-        if (combatant && combatant.index !== index) {
-            combatant.index = index;
-            sendMessage({ type: 'move', name: combatant.name, index });
-            renderCombatants();
-        }
-    });
-}
-
-export function attachTooltipHandlers(el) {
-    let tooltipTimeout;
-
-    el.addEventListener('mouseenter', () => {
-        tooltipTimeout = setTimeout(() => {
-            el.dataset.tooltipShow = 'true';
-        }, 1000);
-    });
-
-    el.addEventListener('mouseleave', () => {
-        clearTimeout(tooltipTimeout);
-        el.dataset.tooltipShow = 'false';
-    });
+// Drop handler (called from main or grid)
+export function moveCombatant(combatantIndex, newSquareIndex) {
+  const c = combatants[combatantIndex];
+  if (c) {
+    c.index = newSquareIndex;
+    renderCombatants();
+    sendMessage({ type: 'move-combatant', index: combatantIndex, to: newSquareIndex });
+  }
 }

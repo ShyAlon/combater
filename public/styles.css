@@ -90,6 +90,7 @@ body {
   display: grid;
   position: relative;
   background: white;
+  opacity: 75%;
 }
 
 .battle-grid > div {

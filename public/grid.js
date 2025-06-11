@@ -1,6 +1,6 @@
 import { renderCombatants } from './combatants.js';
 
-const grid = document.getElementById('grid');
+export const grid = document.getElementById('grid');
 const gridWidthInput = document.getElementById('grid-width');
 const gridHeightInput = document.getElementById('grid-height');
 const distanceDisplay = document.getElementById('distance-display');

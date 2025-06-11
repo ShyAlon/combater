@@ -15,11 +15,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Broadcast to all except sender
 function broadcast(sender, data) {
+    let successes = 0;
     wss.clients.forEach(client => {
         if (client !== sender && client.readyState === WebSocket.OPEN) {
             client.send(data);
+            successes++;
         }
     });
+    console.log(`[WebSocket] sent to ${successes} Broadcast message:`, data.toString());
 }
 
 wss.on('connection', ws => {
@@ -38,9 +41,19 @@ wss.on('connection', ws => {
         } else if (msg.type === 'bulk-add') {
             combatants.push(...msg.combatants);
             broadcast(ws, message);
+        } else if (msg.type === 'edit') {
+            const { index, combatant } = msg;
+            if (combatants[index]) {
+                combatants[index] = combatant;
+                broadcast(ws, message);
+            }
+
         } else if (msg.type === 'delete') {
-            combatants = combatants.filter(c => c.name !== msg.name);
-            broadcast(ws, message);
+            const { index } = msg;
+            if (combatants[index]) {
+                combatants.splice(index, 1);
+                broadcast(ws, JSON.stringify({ type: 'delete', index }));
+            }
         } else if (msg.type === 'move') {
             const c = combatants.find(c => c.name === msg.name);
             if (c) c.index = msg.index;

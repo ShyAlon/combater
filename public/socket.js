@@ -1,22 +1,25 @@
-export const socket = new WebSocket(
-  `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`
-);
-
+export let socket;
 export const clientId = crypto.randomUUID();
+const messageQueue = [];
 
-export function sendMessage(message) {
-  if (typeof message !== 'object') {
-    console.error('[WebSocket Send Error] Expected object, got:', message);
-    return;
-  }
-  const fullMessage = { ...message, clientId };
-  socket.send(JSON.stringify(fullMessage));
-  console.log('[WebSocket Send]', fullMessage);
-}
+const MAX_RETRIES = 5;
+let retryCount = 0;
+let reconnectDelay = 1000;
 
-export function initializeSocketHandlers() {
+function connectWebSocket() {
+  socket = new WebSocket(
+    `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`
+  );
+
   socket.addEventListener('open', () => {
     console.log('[WebSocket] Connected');
+    retryCount = 0;
+    reconnectDelay = 1000;
+
+    while (messageQueue.length > 0) {
+      const msg = messageQueue.shift();
+      socket.send(JSON.stringify(msg));
+    }
   });
 
   socket.addEventListener('message', async (event) => {
@@ -28,10 +31,44 @@ export function initializeSocketHandlers() {
     }
 
     const msg = JSON.parse(text);
+    console.log('[WebSocket] Message received:', msg);
     if (msg.clientId && msg.clientId === clientId) return;
-
-    console.log('[WebSocket Receive]', msg);
 
     document.dispatchEvent(new CustomEvent(`ws:${msg.type}`, { detail: msg }));
   });
+
+  socket.addEventListener('close', () => {
+    console.warn('[WebSocket] Disconnected');
+    attemptReconnect();
+  });
+
+  socket.addEventListener('error', (e) => {
+    console.error('[WebSocket] Error:', e);
+    socket.close();
+  });
+}
+
+function attemptReconnect() {
+  if (retryCount >= MAX_RETRIES) return;
+
+  retryCount++;
+  setTimeout(() => {
+    connectWebSocket();
+    reconnectDelay *= 2;
+  }, reconnectDelay);
+}
+
+export function sendMessage(message) {
+  if (typeof message !== 'object') return;
+
+  const fullMessage = { ...message, clientId };
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(fullMessage));
+  } else {
+    messageQueue.push(fullMessage);
+  }
+}
+
+export function initializeSocketHandlers() {
+  connectWebSocket();
 }

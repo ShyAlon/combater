@@ -4,7 +4,7 @@ import { sendMessage } from './socket.js';
 
 const dialog = document.getElementById('combatant-dialog');
 const form = document.getElementById('combatant-form');
-const addBtn = document.getElementById('add-combatant-btn');
+const addBtn = document.getElementById('add-combatant');
 const removeBtn = document.getElementById('remove-combatant-btn');
 const duplicateBtn = document.getElementById('duplicate-combatant-btn');
 
